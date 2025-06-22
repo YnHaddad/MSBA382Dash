@@ -127,7 +127,7 @@ with col2:
     lonaxis_range=[-180, 180],
     lataxis_range=[-60, 85]
 )
-fig.update_layout(
+    fig.update_layout(
     font=dict(size=10),
     margin=dict(l=10, r=10, t=30, b=0),
     height=300
