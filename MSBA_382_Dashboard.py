@@ -134,7 +134,7 @@ for vac in data.keys():
         'Global Avg': round(global_avg, 1)
     })
 scorecard_df = pd.DataFrame(scorecard).sort_values(by='Global Avg', ascending=False)
-st.dataframe(scorecard_df.set_index('Vaccine'), use_container_width=True, height=200), use_container_width=True)
+st.dataframe(scorecard_df.set_index('Vaccine'), use_container_width=True, height=200)
 
 # ------------------ Dropout Rate Visual ------------------
 if 'DTP1' in data and 'DTP3' in data:
@@ -148,5 +148,5 @@ if 'DTP1' in data and 'DTP3' in data:
         color_continuous_scale=COLOR_SCALE_DROPOUT,
         title=f"DTP1 to DTP3 Dropout Rate in {selected_year}"
     )
-    dropout_fig.update_layout(height=200, margin=dict(l=10, r=10, t=30, b=10)))
+    dropout_fig.update_layout(height=200, margin=dict(l=10, r=10, t=30, b=10))
     st.plotly_chart(dropout_fig, use_container_width=True)
