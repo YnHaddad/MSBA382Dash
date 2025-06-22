@@ -1,21 +1,13 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 import os
 
 st.set_page_config(page_title="Levant Immunization Dashboard", layout="wide")
-st.title("📊 Levant Region Immunization Dashboard")
-st.markdown("Explore national vaccine coverage by country and year based on WHO/UNICEF 2023 data.")
 
-# 📁 Excel file location
-EXCEL_FILE = pd.ExcelFile("wuenic2023rev_web-update.xlsx")
+# ------------------ CONFIG ------------------
+EXCEL_FILE = "wuenic2023rev_web-update.xlsx"
 
-
-# 🔍 Check if file exists
-if not os.path.exists(EXCEL_FILE):
-    st.error(f"❌ File '{EXCEL_FILE}' not found in the app directory.")
-    st.stop()
-
-# 🌍 UNICEF Region mapping
 REGION_MAP = {
     'MENA': 'Middle East and North Africa',
     'ROSA': 'South Asia',
@@ -26,9 +18,33 @@ REGION_MAP = {
     'LACR': 'Latin America and the Caribbean'
 }
 
-# 📥 Load Excel and cache it
+VACCINE_LABELS = {
+    'BCG': 'Tuberculosis (BCG)',
+    'DTP1': 'Diphtheria/Tetanus/Pertussis (1st)',
+    'DTP3': 'Diphtheria/Tetanus/Pertussis (3rd)',
+    'HEPB3': 'Hepatitis B (3rd)',
+    'HEPBB': 'Hepatitis B (Birth)',
+    'HIB3': 'Hib (Haemophilus influenzae type B)',
+    'IPV1': 'Polio (IPV1)',
+    'IPV2': 'Polio (IPV2)',
+    'MCV1': 'Measles (1st)',
+    'MCV2': 'Measles (2nd)',
+    'MENGA': 'Meningococcal A',
+    'PCV3': 'Pneumococcal (3rd)',
+    'POL3': 'Polio (3rd)',
+    'RCV1': 'Rubella',
+    'ROTAC': 'Rotavirus',
+    'YFV': 'Yellow Fever'
+}
+
+LEVANT_COUNTRIES = ['Iraq', 'Jordan', 'Lebanon', 'Palestine', 'Syria']
+
+# ------------------ LOAD DATA ------------------
 @st.cache_data
 def load_data():
+    if not os.path.exists(EXCEL_FILE):
+        st.error(f"❌ File '{EXCEL_FILE}' not found.")
+        st.stop()
     xls = pd.ExcelFile(EXCEL_FILE)
     sheets = [s for s in xls.sheet_names if s not in ['ReadMe', 'regional_global']]
     data = {}
@@ -39,38 +55,71 @@ def load_data():
     return data
 
 data = load_data()
-
-# 🎯 Country and year selection
 sample_df = next(iter(data.values()))
-levant_countries = ['Iraq', 'Jordan', 'Lebanon', 'Palestine', 'Syria']
-country = st.selectbox("Select a country", sorted(levant_countries))
-year = st.selectbox("Select a year", sorted([int(col) for col in sample_df.columns if col.isdigit()], reverse=True))
+years = sorted([int(col) for col in sample_df.columns if col.isdigit()])
 
-# 🌐 Show region info
+# ------------------ LAYOUT ------------------
+st.sidebar.title("🔧 Dashboard Controls")
+country = st.sidebar.selectbox("Country", LEVANT_COUNTRIES)
+year = st.sidebar.selectbox("Year", sorted(years, reverse=True))
+
+# Find Region
 region_name = None
 for df in data.values():
     row = df[df['country'] == country]
     if not row.empty:
         region_name = row.iloc[0]['region_full']
         break
-if region_name:
-    st.markdown(f"🌍 **UNICEF Region**: _{region_name}_")
 
-# 📊 Vaccine coverage bar chart
-coverage_dict = {}
-for vaccine, df in data.items():
-    value = df.loc[df['country'] == country, str(year)]
-    if not value.empty:
-        coverage_dict[vaccine] = float(value.values[0])
-    else:
-        coverage_dict[vaccine] = None
+st.title("🗺️ Levant Immunization Dashboard")
+st.markdown(f"**Country:** {country} | **Year:** {year} | **UNICEF Region:** {region_name}")
 
-coverage_df = pd.DataFrame.from_dict(coverage_dict, orient='index', columns=['Coverage']).dropna()
-coverage_df = coverage_df.sort_values('Coverage', ascending=False)
+# ------------------ SECTION: Current Coverage ------------------
+with st.expander("📊 Vaccine Coverage (Current Year)", expanded=True):
+    coverage_dict = {}
+    for vaccine, df in data.items():
+        val = df.loc[df['country'] == country, str(year)]
+        if not val.empty:
+            coverage_dict[vaccine] = float(val.values[0])
 
-st.subheader(f"💉 Immunization Coverage in **{country}** ({year})")
-st.bar_chart(coverage_df)
+    coverage_df = pd.DataFrame.from_dict(coverage_dict, orient='index', columns=['Coverage']).dropna()
+    coverage_df = coverage_df.rename(index=VACCINE_LABELS).sort_values('Coverage', ascending=False)
+    st.bar_chart(coverage_df)
 
-# 🔍 Raw data
-with st.expander("📄 Show raw data"):
-    st.dataframe(coverage_df.style.format("{:.1f}"))
+# ------------------ SECTION: Trend Over Time ------------------
+with st.expander("📈 Vaccination Rate Over Time", expanded=False):
+    selected_vaccine = st.selectbox("Select Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
+    df_vax = data[selected_vaccine]
+    country_data = df_vax[df_vax['country'] == country]
+    if not country_data.empty:
+        ts = country_data.loc[:, country_data.columns.str.isnumeric()].T
+        ts.columns = ['Coverage']
+        ts.index.name = 'Year'
+        ts = ts.dropna()
+        st.line_chart(ts)
+
+# ------------------ SECTION: Dropout Rates ------------------
+with st.expander("📉 DTP Vaccine Dropout Rate", expanded=False):
+    df1 = data['DTP1'][['country', str(year)]]
+    df3 = data['DTP3'][['country', str(year)]]
+    df_drop = df1.merge(df3, on='country', suffixes=('_DTP1', '_DTP3'))
+    df_drop = df_drop[df_drop['country'].isin(LEVANT_COUNTRIES)]
+    df_drop['Dropout Rate (%)'] = df_drop[f'{year}_DTP1'] - df_drop[f'{year}_DTP3']
+    st.dataframe(df_drop.set_index('country'))
+
+# ------------------ SECTION: Choropleth Map ------------------
+with st.expander("🗺️ Measles (MCV1) Coverage Map", expanded=False):
+    map_data = data['MCV1'][data['MCV1']['country'].isin(LEVANT_COUNTRIES)][['country', str(year)]]
+    map_data.columns = ['Country', 'Coverage']
+    fig = px.choropleth(map_data,
+        locations='Country',
+        locationmode='country names',
+        color='Coverage',
+        color_continuous_scale='RdYlGn',
+        range_color=(0, 100),
+        scope='asia',
+        title=f"MCV1 (Measles) Coverage in {year}"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+# ------------------ END ------------------
