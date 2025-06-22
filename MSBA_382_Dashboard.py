@@ -61,6 +61,7 @@ for df in data.values():
 countries = sorted(all_countries)
 
 st.title("🌍 Global Child Immunization Performance (2000–2023)")
+st.markdown("**Disclaimer:** Some data may be unavailable or incomplete for certain countries or vaccines, which may impact the accuracy of visualizations and metrics.", unsafe_allow_html=True)
 col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
 with col_country:
     selected_country = st.selectbox("Country", countries)
