@@ -159,8 +159,8 @@ with st.expander("🧮 Vaccine Scorecard & Dropout Insights", expanded=True):
             **{
                 'font-size': '14px',
                 'font-weight': 'bold',
-                'color': 'black',
-                'background-color': '#ffffff',
+                'color': 'white',
+                'background-color': '#1e1e1e',
                 'border-color': '#444444'
             }
         )
