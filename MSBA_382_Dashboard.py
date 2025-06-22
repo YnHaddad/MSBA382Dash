@@ -7,6 +7,7 @@ st.set_page_config(page_title="Global Immunization Dashboard", layout="wide")
 
 # ------------------ CONFIG ------------------
 EXCEL_FILE = "wuenic2023rev_web-update.xlsx"
+HDI_FILE = "hdi_data.csv"  # Assume HDI data is available in this CSV
 
 REGION_MAP = {
     'MENA': 'Middle East and North Africa',
@@ -42,7 +43,8 @@ COUNTRY_NAME_MAP = {
     'Palestine': 'Palestinian Territory'
 }
 
-COLOR_SCALE = 'RdYlGn'
+COLOR_SCALE_COVERAGE = 'RdYlGn'
+COLOR_SCALE_DROPOUT = 'YlOrRd_r'
 
 # ------------------ LOAD DATA ------------------
 @st.cache_data
@@ -59,7 +61,14 @@ def load_data():
         data[sheet] = df
     return data
 
+@st.cache_data
+def load_hdi():
+    if not os.path.exists(HDI_FILE):
+        return pd.DataFrame()
+    return pd.read_csv(HDI_FILE)
+
 data = load_data()
+hdi_data = load_hdi()
 sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
 countries = sorted(sample_df['country'].unique())
@@ -121,10 +130,11 @@ with col2:
         locations='Country',
         locationmode='country names',
         color='Coverage',
-        color_continuous_scale=COLOR_SCALE,
+        color_continuous_scale=COLOR_SCALE_COVERAGE,
         range_color=(0, 100),
         title=f"{VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} Coverage in {selected_year}"
     )
+    fig.update_layout(paper_bgcolor='black', geo=dict(bgcolor='black', showcountries=True, fitbounds="locations"))
     st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
@@ -139,5 +149,17 @@ if 'DTP1' in data and 'DTP3' in data:
     df_drop['Dropout Rate (%)'] = ((df_drop['DTP1'] - df_drop['DTP3']) / df_drop['DTP1']) * 100
     df_drop = df_drop[df_drop['Dropout Rate (%)'].notnull() & df_drop['Dropout Rate (%)'].between(-100, 100)]
     st.dataframe(df_drop.set_index('country'))
-    dropout_fig = px.bar(df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)', color_continuous_scale=COLOR_SCALE)
+    dropout_fig = px.bar(df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)', color_continuous_scale=COLOR_SCALE_DROPOUT)
+    dropout_fig.update_layout(height=300)
     st.plotly_chart(dropout_fig, use_container_width=True)
+
+# ------------------ HDI Correlation ------------------
+if not hdi_data.empty:
+    st.subheader("📈 HDI vs Immunization Coverage")
+    hdi_year = str(selected_year)
+    if hdi_year in hdi_data.columns:
+        merge_df = metric_df.merge(hdi_data[['country', hdi_year]], on='country', how='inner')
+        merge_df = merge_df.rename(columns={hdi_year: 'HDI'})
+        corr_fig = px.scatter(merge_df, x='HDI', y='coverage', hover_name='country', trendline='ols', labels={'coverage': 'Vaccine Coverage (%)'})
+        corr_fig.update_layout(height=400)
+        st.plotly_chart(corr_fig, use_container_width=True)
