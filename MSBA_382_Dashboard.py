@@ -126,7 +126,13 @@ with col2:
     lonaxis_range=[-180, 180],
     lataxis_range=[-60, 85]
 )
-    fig.update_layo    st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(
+    font=dict(size=10),
+    margin=dict(l=10, r=10, t=30, b=0),
+    height=300
+)
+    fig.update_traces(marker_line_width=0.2)
+    st.plotly_chart(fig, use_container_width=True)
 
 # ------------------ Country Vaccine Scorecard ------------------
 st.subheader(f"📋 {selected_country} Vaccine Scorecard vs Global Average ({selected_year})")
