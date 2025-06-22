@@ -114,8 +114,7 @@ with col2:
     color='Coverage',
     color_continuous_scale=COLOR_SCALE_COVERAGE,
     range_color=(0, 100),
-    marker_line_width=0.2,
-    title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}",
+        title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}",
     hover_name='Country',
     labels={'Coverage': 'Coverage (%)'}
 )
@@ -127,12 +126,7 @@ with col2:
     lonaxis_range=[-180, 180],
     lataxis_range=[-60, 85]
 )
-    fig.update_layout(
-    font=dict(size=10),
-    margin=dict(l=10, r=10, t=30, b=0),
-    height=300
-)
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_layo    st.plotly_chart(fig, use_container_width=True)
 
 # ------------------ Country Vaccine Scorecard ------------------
 st.subheader(f"📋 {selected_country} Vaccine Scorecard vs Global Average ({selected_year})")
