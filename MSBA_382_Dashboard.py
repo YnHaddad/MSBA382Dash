@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 
-st.set_page_config(page_title="Levant Immunization Dashboard", layout="wide")
+st.set_page_config(page_title="Global Immunization Dashboard", layout="wide")
 
 # ------------------ CONFIG ------------------
 EXCEL_FILE = "wuenic2023rev_web-update.xlsx"
@@ -37,7 +37,10 @@ VACCINE_LABELS = {
     'YFV': 'Yellow Fever'
 }
 
-LEVANT_COUNTRIES = ['Iraq', 'Jordan', 'Lebanon', 'Palestine', 'Syria']
+COUNTRY_NAME_MAP = {
+    'Syria': 'Syrian Arab Republic',
+    'Palestine': 'Palestinian Territory'
+}
 
 # ------------------ LOAD DATA ------------------
 @st.cache_data
@@ -56,15 +59,22 @@ def load_data():
 
 data = load_data()
 sample_df = next(iter(data.values()))
-years = sorted([int(col) for col in sample_df.columns if col.isdigit()])
+years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
+countries = sorted(sample_df['country'].unique())
 
-# ------------------ SIDEBAR FILTERS ------------------
-st.sidebar.title("🔧 Dashboard Filters")
-selected_country = st.sidebar.selectbox("Select Country", LEVANT_COUNTRIES)
-selected_vaccine = st.sidebar.selectbox("Select Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
-selected_year = st.sidebar.selectbox("Select Year", sorted(years, reverse=True))
+# ------------------ TOP BUTTON FILTERS ------------------
+st.title("🌍 Global Immunization Dashboard")
 
-# Find Region
+col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
+
+with col_country:
+    selected_country = st.selectbox("Select Country", countries)
+with col_vaccine:
+    selected_vaccine = st.selectbox("Select Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
+with col_year:
+    selected_year = st.selectbox("Select Year", sorted(years, reverse=True))
+
+# ------------------ INFO HEADER ------------------
 region_name = None
 for df in data.values():
     row = df[df['country'] == selected_country]
@@ -72,7 +82,6 @@ for df in data.values():
         region_name = row.iloc[0]['region_full']
         break
 
-st.title("💉 Levant Immunization Dashboard")
 st.markdown(f"**Country:** {selected_country} | **Vaccine:** {VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} | **Year:** {selected_year} | **Region:** {region_name}")
 
 col1, col2 = st.columns(2)
@@ -89,8 +98,10 @@ with col1:
         st.line_chart(ts)
 
 with col2:
-    st.subheader("🗺️ Levant Coverage Map")
-    map_df = data[selected_vaccine][data[selected_vaccine]['country'].isin(LEVANT_COUNTRIES)][['country', str(selected_year)]]
+    st.subheader("🗺️ Global Coverage Map")
+    map_df = data[selected_vaccine][['country', str(selected_year)]]
+    map_df['Country'] = map_df['country'].replace(COUNTRY_NAME_MAP).fillna(map_df['country'])
+    map_df = map_df[['Country', str(selected_year)]]
     map_df.columns = ['Country', 'Coverage']
     fig = px.choropleth(map_df,
         locations='Country',
@@ -98,7 +109,6 @@ with col2:
         color='Coverage',
         color_continuous_scale='Viridis',
         range_color=(0, 100),
-        scope='asia',
         title=f"{VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} Coverage in {selected_year}"
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -110,6 +120,5 @@ if 'DTP1' in data and 'DTP3' in data:
     df1 = data['DTP1'][['country', str(selected_year)]]
     df3 = data['DTP3'][['country', str(selected_year)]]
     df_drop = df1.merge(df3, on='country', suffixes=('_DTP1', '_DTP3'))
-    df_drop = df_drop[df_drop['country'].isin(LEVANT_COUNTRIES)]
     df_drop['Dropout Rate (%)'] = df_drop[f'{selected_year}_DTP1'] - df_drop[f'{selected_year}_DTP3']
     st.dataframe(df_drop.set_index('country'))
