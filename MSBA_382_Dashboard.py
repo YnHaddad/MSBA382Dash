@@ -128,9 +128,7 @@ with col2:
     font=dict(size=10),
     margin=dict(l=10, r=10, t=30, b=0),
     height=300
-),
-        margin=dict(l=0, r=0, t=30, b=0), height=300
-    )
+)
     st.plotly_chart(fig, use_container_width=True)
 
 # ------------------ Country Vaccine Scorecard ------------------
