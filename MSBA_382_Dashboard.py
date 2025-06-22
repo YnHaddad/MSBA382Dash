@@ -89,7 +89,7 @@ if not metric_df.empty:
     with col_low:
         st.metric(label="📉 Lowest Coverage", value=f"{lowest_row['country']} ({lowest_row['coverage']}%)")
 
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([3, 2])
 
 with col1:
     st.subheader("📊 Coverage Over Time")
@@ -100,7 +100,7 @@ with col1:
         ts.columns = ['Coverage']
         ts.index.name = 'Year'
         ts = ts.dropna()
-        st.line_chart(ts, height=250)
+        st.line_chart(ts, use_container_width=True, height=280)
 
 with col2:
     st.subheader("🗺️ Global Coverage Map")
@@ -131,6 +131,9 @@ with col2:
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)',
     geo_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    geo_bgcolor='rgba(0,0,0,0)',
     margin=dict(l=10, r=10, t=30, b=0),
     height=300
 )
@@ -156,8 +159,15 @@ with col_scorecard:
         })
     scorecard_df = pd.DataFrame(scorecard).sort_values(by='Global Avg', ascending=False)
     styled_df = scorecard_df.set_index('Vaccine').style.set_properties(
-        **{'font-size': '14px', 'font-weight': 'bold', 'background-color': '#F0F0F0'})
-    st.dataframe(styled_df, use_container_width=True, height=200)
+    **{
+        'font-size': '14px',
+        'font-weight': 'bold',
+        'color': 'black',
+        'background-color': '#ffffff',
+        'border-color': '#444444'
+    }
+)
+    st.dataframe(styled_df, use_container_width=True, height=250)
 
 with col_dropout:
     if 'DTP1' in data and 'DTP3' in data:
