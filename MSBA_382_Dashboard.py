@@ -108,16 +108,27 @@ with col2:
     map_df['Country'] = map_df['country'].replace(COUNTRY_NAME_MAP).fillna(map_df['country'])
     map_df = map_df[['Country', str(selected_year)]].rename(columns={str(selected_year): 'Coverage'})
     fig = px.choropleth(
-        map_df,
-        locations='Country',
-        locationmode='country names',
-        color='Coverage',
-        color_continuous_scale=COLOR_SCALE_COVERAGE,
-        range_color=(0, 100),
-        title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}"
-    )
+    map_df,
+    locations='Country',
+    locationmode='country names',
+    color='Coverage',
+    color_continuous_scale=COLOR_SCALE_COVERAGE,
+    range_color=(0, 100),
+    title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}",
+    hover_name='Country',
+    labels={'Coverage': 'Coverage (%)'}
+)
     fig.update_layout(
-        geo=dict(showcountries=True),
+    geo=dict(
+        showframe=False,
+        showcoastlines=False,
+        projection_type='natural earth',
+        showcountries=True
+    ),
+    font=dict(size=10),
+    margin=dict(l=10, r=10, t=30, b=0),
+    height=300
+),
         margin=dict(l=0, r=0, t=30, b=0), height=300
     )
     st.plotly_chart(fig, use_container_width=True)
