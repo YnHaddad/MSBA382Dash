@@ -151,13 +151,13 @@ with st.expander("🧮 Vaccine Scorecard & Dropout Insights", expanded=True):
             global_avg = df[str(selected_year)].mean()
             scorecard.append({
                 'Vaccine': VACCINE_LABELS.get(vac, vac),
-                selected_country: round(country_val[0], 1),
-                'Global Avg': round(global_avg, 1)
+                selected_country: round(country_val[0], 2),
+                'Global Avg': round(global_avg, 2)
             })
         scorecard_df = pd.DataFrame(scorecard).sort_values(by='Global Avg', ascending=False)
         styled_df = scorecard_df.set_index('Vaccine').style.set_properties(
             **{
-                'font-size': '14px',
+                'font-size': '16px',
                 'font-weight': 'bold',
                 'color': 'white',
                 'background-color': '#1e1e1e',
