@@ -113,8 +113,6 @@ with col2:
     locationmode='country names',
     color='Coverage',
     color_continuous_scale=COLOR_SCALE_COVERAGE,
-    ,
-    color_continuous_scale=COLOR_SCALE_COVERAGE,
     range_color=(0, 100),
     marker_line_width=0.2,
     title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}",
