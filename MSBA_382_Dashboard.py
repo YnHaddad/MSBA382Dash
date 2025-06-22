@@ -42,6 +42,8 @@ COUNTRY_NAME_MAP = {
     'Palestine': 'Palestinian Territory'
 }
 
+COLOR_SCALE = 'RdYlGn'
+
 # ------------------ LOAD DATA ------------------
 @st.cache_data
 def load_data():
@@ -84,6 +86,18 @@ for df in data.values():
 
 st.markdown(f"**Country:** {selected_country} | **Vaccine:** {VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} | **Year:** {selected_year} | **Region:** {region_name}")
 
+# ------------------ METRICS FOR SELECTED VACCINE ------------------
+metric_df = data[selected_vaccine][['country', str(selected_year)]].dropna()
+metric_df.columns = ['country', 'coverage']
+if not metric_df.empty:
+    highest_row = metric_df.loc[metric_df['coverage'].idxmax()]
+    lowest_row = metric_df.loc[metric_df['coverage'].idxmin()]
+    col_high, col_low = st.columns(2)
+    with col_high:
+        st.metric(label="📈 Highest Coverage", value=f"{highest_row['country']} ({highest_row['coverage']}%)")
+    with col_low:
+        st.metric(label="📉 Lowest Coverage", value=f"{lowest_row['country']} ({lowest_row['coverage']}%)")
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -107,7 +121,7 @@ with col2:
         locations='Country',
         locationmode='country names',
         color='Coverage',
-        color_continuous_scale='Viridis',
+        color_continuous_scale=COLOR_SCALE,
         range_color=(0, 100),
         title=f"{VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} Coverage in {selected_year}"
     )
@@ -115,10 +129,15 @@ with col2:
 
 st.divider()
 
+# ------------------ DROPOUT RATE ------------------
 st.subheader("📉 DTP Vaccine Dropout Rate")
 if 'DTP1' in data and 'DTP3' in data:
-    df1 = data['DTP1'][['country', str(selected_year)]]
-    df3 = data['DTP3'][['country', str(selected_year)]]
-    df_drop = df1.merge(df3, on='country', suffixes=('_DTP1', '_DTP3'))
-    df_drop['Dropout Rate (%)'] = df_drop[f'{selected_year}_DTP1'] - df_drop[f'{selected_year}_DTP3']
+    df1 = data['DTP1'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP1'})
+    df3 = data['DTP3'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP3'})
+    df_drop = df1.merge(df3, on='country')
+    df_drop = df_drop.dropna()
+    df_drop['Dropout Rate (%)'] = ((df_drop['DTP1'] - df_drop['DTP3']) / df_drop['DTP1']) * 100
+    df_drop = df_drop[df_drop['Dropout Rate (%)'].notnull() & df_drop['Dropout Rate (%)'].between(-100, 100)]
     st.dataframe(df_drop.set_index('country'))
+    dropout_fig = px.bar(df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)', color_continuous_scale=COLOR_SCALE)
+    st.plotly_chart(dropout_fig, use_container_width=True)
