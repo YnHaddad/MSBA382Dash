@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -119,3 +118,18 @@ with col2:
         margin=dict(l=0, r=0, t=30, b=0), height=300
     )
     st.plotly_chart(fig, use_container_width=True)
+
+# ------------------ Dropout Rate Visual ------------------
+if 'DTP1' in data and 'DTP3' in data:
+    df1 = data['DTP1'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP1'})
+    df3 = data['DTP3'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP3'})
+    df_drop = df1.merge(df3, on='country').dropna()
+    df_drop['Dropout Rate (%)'] = ((df_drop['DTP1'] - df_drop['DTP3']) / df_drop['DTP1']) * 100
+    df_drop = df_drop[df_drop['Dropout Rate (%)'].between(-100, 100)]
+    dropout_fig = px.bar(
+        df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)',
+        color_continuous_scale=COLOR_SCALE_DROPOUT,
+        title=f"DTP1 to DTP3 Dropout Rate in {selected_year}"
+    )
+    dropout_fig.update_layout(height=250, margin=dict(l=10, r=10, t=30, b=10))
+    st.plotly_chart(dropout_fig, use_container_width=True)
