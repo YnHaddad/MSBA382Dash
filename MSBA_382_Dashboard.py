@@ -53,6 +53,7 @@ def load_data():
     return data
 
 data = load_data()
+sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
 all_countries = set()
 for df in data.values():
@@ -64,7 +65,7 @@ col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
 with col_country:
     selected_country = st.selectbox("Country", countries)
 with col_vaccine:
-    selected_vaccine = st.selectbox("Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x, x, x))
+    selected_vaccine = st.selectbox("Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
 with col_year:
     selected_year = st.selectbox("Year", sorted(years, reverse=True))
 
@@ -173,6 +174,4 @@ with col_dropout:
         dropout_fig.update_layout(height=200, margin=dict(l=10, r=10, t=30, b=10))
         st.plotly_chart(dropout_fig, use_container_width=True)
 
-# ------------------ Dropout Rate Visual ------------------
-# (Duplicate block removed to avoid repeating chart)
-pass
+
