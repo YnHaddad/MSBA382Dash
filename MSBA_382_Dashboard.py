@@ -55,7 +55,10 @@ def load_data():
 data = load_data()
 sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
-countries = sorted(sample_df['country'].unique())
+all_countries = set()
+for df in data.values():
+    all_countries.update(df['country'].dropna().unique())
+countries = sorted(all_countries)
 
 st.title("🌍 Global Child Immunization Performance (2000–2023)")
 col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
