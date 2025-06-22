@@ -57,7 +57,7 @@ sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
 countries = sorted(sample_df['country'].unique())
 
-st.title("🌍 Global Immunization Dashboard")
+st.title("🌍 Global Child Immunization Performance (2000–2023)")
 col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
 with col_country:
     selected_country = st.selectbox("Country", countries)
@@ -119,6 +119,23 @@ with col2:
     )
     st.plotly_chart(fig, use_container_width=True)
 
+# ------------------ Country Vaccine Scorecard ------------------
+st.subheader(f"📋 {selected_country} Vaccine Scorecard vs Global Average ({selected_year})")
+scorecard = []
+for vac in data.keys():
+    df = data[vac][['country', str(selected_year)]].dropna()
+    country_val = df[df['country'] == selected_country][str(selected_year)].values
+    if len(country_val) == 0:
+        continue
+    global_avg = df[str(selected_year)].mean()
+    scorecard.append({
+        'Vaccine': VACCINE_LABELS.get(vac, vac),
+        selected_country: round(country_val[0], 1),
+        'Global Avg': round(global_avg, 1)
+    })
+scorecard_df = pd.DataFrame(scorecard).sort_values(by='Global Avg', ascending=False)
+st.dataframe(scorecard_df.set_index('Vaccine'), use_container_width=True, height=200), use_container_width=True)
+
 # ------------------ Dropout Rate Visual ------------------
 if 'DTP1' in data and 'DTP3' in data:
     df1 = data['DTP1'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP1'})
@@ -131,5 +148,5 @@ if 'DTP1' in data and 'DTP3' in data:
         color_continuous_scale=COLOR_SCALE_DROPOUT,
         title=f"DTP1 to DTP3 Dropout Rate in {selected_year}"
     )
-    dropout_fig.update_layout(height=250, margin=dict(l=10, r=10, t=30, b=10))
+    dropout_fig.update_layout(height=200, margin=dict(l=10, r=10, t=30, b=10)))
     st.plotly_chart(dropout_fig, use_container_width=True)
