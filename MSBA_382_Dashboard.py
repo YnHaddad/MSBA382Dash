@@ -53,7 +53,6 @@ def load_data():
     return data
 
 data = load_data()
-sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
 all_countries = set()
 for df in data.values():
@@ -65,7 +64,7 @@ col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
 with col_country:
     selected_country = st.selectbox("Country", countries)
 with col_vaccine:
-    selected_vaccine = st.selectbox("Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
+    selected_vaccine = st.selectbox("Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x, x, x))
 with col_year:
     selected_year = st.selectbox("Year", sorted(years, reverse=True))
 
@@ -138,7 +137,7 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 with st.expander("🧮 Vaccine Scorecard & Dropout Insights", expanded=True):
-col_scorecard, col_dropout = st.columns(2)
+    col_scorecard, col_dropout = st.columns(2)
 
 with col_scorecard:
     st.markdown(f"<h4 style='color:#FFD700; font-weight:bold;'>📋 {selected_country} Vaccine Scorecard vs Global Average ({selected_year})</h4>", unsafe_allow_html=True)
