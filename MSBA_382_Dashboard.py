@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -20,7 +21,6 @@ st.markdown("""
 
 # ------------------ CONFIG ------------------
 EXCEL_FILE = "wuenic2023rev_web-update.xlsx"
-HDI_FILE = "hdi_data.csv"
 
 REGION_MAP = {
     'MENA': 'Middle East and North Africa', 'ROSA': 'South Asia', 'ESAR': 'Eastern and Southern Africa',
@@ -41,7 +41,7 @@ COUNTRY_NAME_MAP = {
 }
 
 COLOR_SCALE_COVERAGE = 'RdYlGn'
-COLOR_SCALE_DROPOUT = 'YlOrRd_r'
+COLOR_SCALE_DROPOUT = 'RdYlGn_r'
 
 @st.cache_data
 def load_data():
@@ -53,14 +53,7 @@ def load_data():
     data = {sheet: xls.parse(sheet).assign(region_full=lambda df: df['unicef_region'].map(REGION_MAP).fillna('Other')) for sheet in sheets}
     return data
 
-@st.cache_data
-def load_hdi():
-    if not os.path.exists(HDI_FILE):
-        return pd.DataFrame()
-    return pd.read_csv(HDI_FILE)
-
 data = load_data()
-hdi_data = load_hdi()
 sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
 countries = sorted(sample_df['country'].unique())
@@ -122,36 +115,7 @@ with col2:
         title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}"
     )
     fig.update_layout(
-        paper_bgcolor='black',
-        geo=dict(bgcolor='black', showcountries=True, fitbounds="locations"),
+        geo=dict(showcountries=True),
         margin=dict(l=0, r=0, t=30, b=0), height=300
     )
     st.plotly_chart(fig, use_container_width=True)
-
-st.divider()
-st.subheader("📉 DTP Dropout Rate")
-if 'DTP1' in data and 'DTP3' in data:
-    df1 = data['DTP1'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP1'})
-    df3 = data['DTP3'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP3'})
-    df_drop = df1.merge(df3, on='country').dropna()
-    df_drop['Dropout Rate (%)'] = ((df_drop['DTP1'] - df_drop['DTP3']) / df_drop['DTP1']) * 100
-    df_drop = df_drop[df_drop['Dropout Rate (%)'].between(-100, 100)]
-    st.dataframe(df_drop.set_index('country'))
-    dropout_fig = px.bar(
-        df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)',
-        color_continuous_scale=COLOR_SCALE_DROPOUT
-    )
-    dropout_fig.update_layout(height=250, margin=dict(l=10, r=10, t=30, b=10))
-    st.plotly_chart(dropout_fig, use_container_width=True)
-
-if not hdi_data.empty:
-    st.subheader("📈 HDI vs Coverage Correlation")
-    hdi_year = str(selected_year)
-    if hdi_year in hdi_data.columns:
-        merge_df = metric_df.merge(hdi_data[['country', hdi_year]], on='country', how='inner')
-        merge_df = merge_df.rename(columns={hdi_year: 'HDI'})
-        corr_fig = px.scatter(
-            merge_df, x='HDI', y='coverage', hover_name='country', trendline='ols',
-            labels={'coverage': 'Coverage (%)'}, height=300
-        )
-        st.plotly_chart(corr_fig, use_container_width=True)
