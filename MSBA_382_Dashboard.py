@@ -7,7 +7,8 @@ st.title("📊 Levant Region Immunization Dashboard")
 st.markdown("Explore national vaccine coverage by country and year based on WHO/UNICEF 2023 data.")
 
 # 📁 Excel file location
-EXCEL_FILE = "C:/Users/yacou/Downloads/wuenic2023rev_web-update.xlsx"
+EXCEL_FILE = pd.ExcelFile("wuenic2023rev_web-update.xlsx")
+
 
 # 🔍 Check if file exists
 if not os.path.exists(EXCEL_FILE):
