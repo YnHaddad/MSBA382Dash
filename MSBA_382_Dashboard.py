@@ -155,7 +155,7 @@ with st.expander("🧮 Vaccine Scorecard & Dropout Insights", expanded=True):
                 'Global Avg': round(global_avg, 2)
             })
         scorecard_df = pd.DataFrame(scorecard).sort_values(by='Global Avg', ascending=False)
-        styled_df = scorecard_df.set_index('Vaccine').style.set_properties(
+        styled_df = scorecard_df.set_index('Vaccine').style.format("{:.2f}").set_properties(
             **{
                 'font-size': '16px',
                 'font-weight': 'bold',
