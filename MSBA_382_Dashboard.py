@@ -58,39 +58,29 @@ data = load_data()
 sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isdigit()])
 
-# ------------------ LAYOUT ------------------
-st.sidebar.title("🔧 Dashboard Controls")
-country = st.sidebar.selectbox("Country", LEVANT_COUNTRIES)
-year = st.sidebar.selectbox("Year", sorted(years, reverse=True))
+# ------------------ SIDEBAR FILTERS ------------------
+st.sidebar.title("🔧 Dashboard Filters")
+selected_country = st.sidebar.selectbox("Select Country", LEVANT_COUNTRIES)
+selected_vaccine = st.sidebar.selectbox("Select Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
+selected_year = st.sidebar.selectbox("Select Year", sorted(years, reverse=True))
 
 # Find Region
 region_name = None
 for df in data.values():
-    row = df[df['country'] == country]
+    row = df[df['country'] == selected_country]
     if not row.empty:
         region_name = row.iloc[0]['region_full']
         break
 
-st.title("🗺️ Levant Immunization Dashboard")
-st.markdown(f"**Country:** {country} | **Year:** {year} | **UNICEF Region:** {region_name}")
+st.title("💉 Levant Immunization Dashboard")
+st.markdown(f"**Country:** {selected_country} | **Vaccine:** {VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} | **Year:** {selected_year} | **Region:** {region_name}")
 
-# ------------------ SECTION: Current Coverage ------------------
-with st.expander("📊 Vaccine Coverage (Current Year)", expanded=True):
-    coverage_dict = {}
-    for vaccine, df in data.items():
-        val = df.loc[df['country'] == country, str(year)]
-        if not val.empty:
-            coverage_dict[vaccine] = float(val.values[0])
+col1, col2 = st.columns(2)
 
-    coverage_df = pd.DataFrame.from_dict(coverage_dict, orient='index', columns=['Coverage']).dropna()
-    coverage_df = coverage_df.rename(index=VACCINE_LABELS).sort_values('Coverage', ascending=False)
-    st.bar_chart(coverage_df)
-
-# ------------------ SECTION: Trend Over Time ------------------
-with st.expander("📈 Vaccination Rate Over Time", expanded=False):
-    selected_vaccine = st.selectbox("Select Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
+with col1:
+    st.subheader("📊 Coverage Over Time")
     df_vax = data[selected_vaccine]
-    country_data = df_vax[df_vax['country'] == country]
+    country_data = df_vax[df_vax['country'] == selected_country]
     if not country_data.empty:
         ts = country_data.loc[:, country_data.columns.str.isnumeric()].T
         ts.columns = ['Coverage']
@@ -98,28 +88,28 @@ with st.expander("📈 Vaccination Rate Over Time", expanded=False):
         ts = ts.dropna()
         st.line_chart(ts)
 
-# ------------------ SECTION: Dropout Rates ------------------
-with st.expander("📉 DTP Vaccine Dropout Rate", expanded=False):
-    df1 = data['DTP1'][['country', str(year)]]
-    df3 = data['DTP3'][['country', str(year)]]
-    df_drop = df1.merge(df3, on='country', suffixes=('_DTP1', '_DTP3'))
-    df_drop = df_drop[df_drop['country'].isin(LEVANT_COUNTRIES)]
-    df_drop['Dropout Rate (%)'] = df_drop[f'{year}_DTP1'] - df_drop[f'{year}_DTP3']
-    st.dataframe(df_drop.set_index('country'))
-
-# ------------------ SECTION: Choropleth Map ------------------
-with st.expander("🗺️ Measles (MCV1) Coverage Map", expanded=False):
-    map_data = data['MCV1'][data['MCV1']['country'].isin(LEVANT_COUNTRIES)][['country', str(year)]]
-    map_data.columns = ['Country', 'Coverage']
-    fig = px.choropleth(map_data,
+with col2:
+    st.subheader("🗺️ Levant Coverage Map")
+    map_df = data[selected_vaccine][data[selected_vaccine]['country'].isin(LEVANT_COUNTRIES)][['country', str(selected_year)]]
+    map_df.columns = ['Country', 'Coverage']
+    fig = px.choropleth(map_df,
         locations='Country',
         locationmode='country names',
         color='Coverage',
-        color_continuous_scale='RdYlGn',
+        color_continuous_scale='Viridis',
         range_color=(0, 100),
         scope='asia',
-        title=f"MCV1 (Measles) Coverage in {year}"
+        title=f"{VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} Coverage in {selected_year}"
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ------------------ END ------------------
+st.divider()
+
+st.subheader("📉 DTP Vaccine Dropout Rate")
+if 'DTP1' in data and 'DTP3' in data:
+    df1 = data['DTP1'][['country', str(selected_year)]]
+    df3 = data['DTP3'][['country', str(selected_year)]]
+    df_drop = df1.merge(df3, on='country', suffixes=('_DTP1', '_DTP3'))
+    df_drop = df_drop[df_drop['country'].isin(LEVANT_COUNTRIES)]
+    df_drop['Dropout Rate (%)'] = df_drop[f'{selected_year}_DTP1'] - df_drop[f'{selected_year}_DTP3']
+    st.dataframe(df_drop.set_index('country'))
