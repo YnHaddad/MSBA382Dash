@@ -131,6 +131,12 @@ with col2:
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)',
     geo_bgcolor='rgba(0,0,0,0)',
+    margin=dict(l=10, r=10, t=30, b=0),
+    height=300
+),
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    geo_bgcolor='rgba(0,0,0,0)',
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)',
     geo_bgcolor='rgba(0,0,0,0)',
