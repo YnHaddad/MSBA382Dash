@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -104,7 +103,7 @@ with col1:
         st.line_chart(ts, use_container_width=True, height=280)
 
 with col2:
-    st.subheader("🗺️ Global Coverage Map")
+    st.subheader("🗘️ Global Coverage Map")
     map_df = data[selected_vaccine][['country', str(selected_year)]]
     map_df['Country'] = map_df['country'].replace(COUNTRY_NAME_MAP).fillna(map_df['country'])
     map_df = map_df[['Country', str(selected_year)]].rename(columns={str(selected_year): 'Coverage'})
@@ -127,16 +126,8 @@ with col2:
         lonaxis_range=[-180, 180],
         lataxis_range=[-60, 85]
     )
-    
-fig.update_layout(
-    font=dict(size=10, color='white'),
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)',
-    geo_bgcolor='rgba(0,0,0,0)',
-    margin=dict(l=10, r=10, t=30, b=0),
-    height=300
-)
-,
+    fig.update_layout(
+        font=dict(size=10, color='white'),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         geo_bgcolor='rgba(0,0,0,0)',
@@ -187,14 +178,12 @@ with st.expander("🧮 Vaccine Scorecard & Dropout Insights", expanded=True):
                 color_continuous_scale=COLOR_SCALE_DROPOUT,
                 title=f"DTP1 to DTP3 Dropout Rate in {selected_year}"
             )
-            dropout_
-fig.update_layout(
-    font=dict(size=10, color='white'),
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)',
-    geo_bgcolor='rgba(0,0,0,0)',
-    margin=dict(l=10, r=10, t=30, b=0),
-    height=300
-)
-)
+            dropout_fig.update_layout(
+                font=dict(size=10, color='white'),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                geo_bgcolor='rgba(0,0,0,0)',
+                margin=dict(l=10, r=10, t=30, b=0),
+                height=300
+            )
             st.plotly_chart(dropout_fig, use_container_width=True)
