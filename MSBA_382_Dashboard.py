@@ -5,48 +5,44 @@ import os
 
 st.set_page_config(page_title="Global Immunization Dashboard", layout="wide")
 
+# Reduce default font size and padding for compact layout
+st.markdown("""
+    <style>
+    html, body, [class*="css"]  {
+        font-size: 12px !important;
+    }
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # ------------------ CONFIG ------------------
 EXCEL_FILE = "wuenic2023rev_web-update.xlsx"
-HDI_FILE = "hdi_data.csv"  # Assume HDI data is available in this CSV
+HDI_FILE = "hdi_data.csv"
 
 REGION_MAP = {
-    'MENA': 'Middle East and North Africa',
-    'ROSA': 'South Asia',
-    'ESAR': 'Eastern and Southern Africa',
-    'WCAR': 'West and Central Africa',
-    'ECAR': 'Europe and Central Asia',
-    'EAPR': 'East Asia and the Pacific',
-    'LACR': 'Latin America and the Caribbean'
+    'MENA': 'Middle East and North Africa', 'ROSA': 'South Asia', 'ESAR': 'Eastern and Southern Africa',
+    'WCAR': 'West and Central Africa', 'ECAR': 'Europe and Central Asia',
+    'EAPR': 'East Asia and the Pacific', 'LACR': 'Latin America and the Caribbean'
 }
 
 VACCINE_LABELS = {
-    'BCG': 'Tuberculosis (BCG)',
-    'DTP1': 'Diphtheria/Tetanus/Pertussis (1st)',
-    'DTP3': 'Diphtheria/Tetanus/Pertussis (3rd)',
-    'HEPB3': 'Hepatitis B (3rd)',
-    'HEPBB': 'Hepatitis B (Birth)',
-    'HIB3': 'Hib (Haemophilus influenzae type B)',
-    'IPV1': 'Polio (IPV1)',
-    'IPV2': 'Polio (IPV2)',
-    'MCV1': 'Measles (1st)',
-    'MCV2': 'Measles (2nd)',
-    'MENGA': 'Meningococcal A',
-    'PCV3': 'Pneumococcal (3rd)',
-    'POL3': 'Polio (3rd)',
-    'RCV1': 'Rubella',
-    'ROTAC': 'Rotavirus',
-    'YFV': 'Yellow Fever'
+    'BCG': 'Tuberculosis (BCG)', 'DTP1': 'Diphtheria/Tetanus/Pertussis (1st)', 'DTP3': 'Diphtheria/Tetanus/Pertussis (3rd)',
+    'HEPB3': 'Hepatitis B (3rd)', 'HEPBB': 'Hepatitis B (Birth)', 'HIB3': 'Hib (Haemophilus influenzae type B)',
+    'IPV1': 'Polio (IPV1)', 'IPV2': 'Polio (IPV2)', 'MCV1': 'Measles (1st)', 'MCV2': 'Measles (2nd)',
+    'MENGA': 'Meningococcal A', 'PCV3': 'Pneumococcal (3rd)', 'POL3': 'Polio (3rd)',
+    'RCV1': 'Rubella', 'ROTAC': 'Rotavirus', 'YFV': 'Yellow Fever'
 }
 
 COUNTRY_NAME_MAP = {
-    'Syria': 'Syrian Arab Republic',
-    'Palestine': 'Palestinian Territory'
+    'Syria': 'Syrian Arab Republic', 'Palestine': 'Palestinian Territory'
 }
 
 COLOR_SCALE_COVERAGE = 'RdYlGn'
 COLOR_SCALE_DROPOUT = 'YlOrRd_r'
 
-# ------------------ LOAD DATA ------------------
 @st.cache_data
 def load_data():
     if not os.path.exists(EXCEL_FILE):
@@ -54,11 +50,7 @@ def load_data():
         st.stop()
     xls = pd.ExcelFile(EXCEL_FILE)
     sheets = [s for s in xls.sheet_names if s not in ['ReadMe', 'regional_global']]
-    data = {}
-    for sheet in sheets:
-        df = xls.parse(sheet)
-        df['region_full'] = df['unicef_region'].map(REGION_MAP).fillna('Other')
-        data[sheet] = df
+    data = {sheet: xls.parse(sheet).assign(region_full=lambda df: df['unicef_region'].map(REGION_MAP).fillna('Other')) for sheet in sheets}
     return data
 
 @st.cache_data
@@ -73,19 +65,15 @@ sample_df = next(iter(data.values()))
 years = sorted([int(col) for col in sample_df.columns if col.isnumeric()])
 countries = sorted(sample_df['country'].unique())
 
-# ------------------ TOP BUTTON FILTERS ------------------
 st.title("🌍 Global Immunization Dashboard")
-
 col_country, col_vaccine, col_year = st.columns([1.5, 2, 1.2])
-
 with col_country:
-    selected_country = st.selectbox("Select Country", countries)
+    selected_country = st.selectbox("Country", countries)
 with col_vaccine:
-    selected_vaccine = st.selectbox("Select Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
+    selected_vaccine = st.selectbox("Vaccine", sorted(data.keys()), format_func=lambda x: VACCINE_LABELS.get(x, x))
 with col_year:
-    selected_year = st.selectbox("Select Year", sorted(years, reverse=True))
+    selected_year = st.selectbox("Year", sorted(years, reverse=True))
 
-# ------------------ INFO HEADER ------------------
 region_name = None
 for df in data.values():
     row = df[df['country'] == selected_country]
@@ -93,9 +81,8 @@ for df in data.values():
         region_name = row.iloc[0]['region_full']
         break
 
-st.markdown(f"**Country:** {selected_country} | **Vaccine:** {VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} | **Year:** {selected_year} | **Region:** {region_name}")
+st.markdown(f"**Country:** {selected_country} | **Vaccine:** {VACCINE_LABELS.get(selected_vaccine)} | **Year:** {selected_year} | **Region:** {region_name}")
 
-# ------------------ METRICS FOR SELECTED VACCINE ------------------
 metric_df = data[selected_vaccine][['country', str(selected_year)]].dropna()
 metric_df.columns = ['country', 'coverage']
 if not metric_df.empty:
@@ -118,48 +105,53 @@ with col1:
         ts.columns = ['Coverage']
         ts.index.name = 'Year'
         ts = ts.dropna()
-        st.line_chart(ts)
+        st.line_chart(ts, height=250)
 
 with col2:
     st.subheader("🗺️ Global Coverage Map")
     map_df = data[selected_vaccine][['country', str(selected_year)]]
     map_df['Country'] = map_df['country'].replace(COUNTRY_NAME_MAP).fillna(map_df['country'])
-    map_df = map_df[['Country', str(selected_year)]]
-    map_df.columns = ['Country', 'Coverage']
-    fig = px.choropleth(map_df,
+    map_df = map_df[['Country', str(selected_year)]].rename(columns={str(selected_year): 'Coverage'})
+    fig = px.choropleth(
+        map_df,
         locations='Country',
         locationmode='country names',
         color='Coverage',
         color_continuous_scale=COLOR_SCALE_COVERAGE,
         range_color=(0, 100),
-        title=f"{VACCINE_LABELS.get(selected_vaccine, selected_vaccine)} Coverage in {selected_year}"
+        title=f"{VACCINE_LABELS.get(selected_vaccine)} Coverage in {selected_year}"
     )
-    fig.update_layout(paper_bgcolor='black', geo=dict(bgcolor='black', showcountries=True, fitbounds="locations"))
+    fig.update_layout(
+        paper_bgcolor='black',
+        geo=dict(bgcolor='black', showcountries=True, fitbounds="locations"),
+        margin=dict(l=0, r=0, t=30, b=0), height=300
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
-
-# ------------------ DROPOUT RATE ------------------
-st.subheader("📉 DTP Vaccine Dropout Rate")
+st.subheader("📉 DTP Dropout Rate")
 if 'DTP1' in data and 'DTP3' in data:
     df1 = data['DTP1'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP1'})
     df3 = data['DTP3'][['country', str(selected_year)]].rename(columns={str(selected_year): 'DTP3'})
-    df_drop = df1.merge(df3, on='country')
-    df_drop = df_drop.dropna()
+    df_drop = df1.merge(df3, on='country').dropna()
     df_drop['Dropout Rate (%)'] = ((df_drop['DTP1'] - df_drop['DTP3']) / df_drop['DTP1']) * 100
-    df_drop = df_drop[df_drop['Dropout Rate (%)'].notnull() & df_drop['Dropout Rate (%)'].between(-100, 100)]
+    df_drop = df_drop[df_drop['Dropout Rate (%)'].between(-100, 100)]
     st.dataframe(df_drop.set_index('country'))
-    dropout_fig = px.bar(df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)', color_continuous_scale=COLOR_SCALE_DROPOUT)
-    dropout_fig.update_layout(height=300)
+    dropout_fig = px.bar(
+        df_drop, x='country', y='Dropout Rate (%)', color='Dropout Rate (%)',
+        color_continuous_scale=COLOR_SCALE_DROPOUT
+    )
+    dropout_fig.update_layout(height=250, margin=dict(l=10, r=10, t=30, b=10))
     st.plotly_chart(dropout_fig, use_container_width=True)
 
-# ------------------ HDI Correlation ------------------
 if not hdi_data.empty:
-    st.subheader("📈 HDI vs Immunization Coverage")
+    st.subheader("📈 HDI vs Coverage Correlation")
     hdi_year = str(selected_year)
     if hdi_year in hdi_data.columns:
         merge_df = metric_df.merge(hdi_data[['country', hdi_year]], on='country', how='inner')
         merge_df = merge_df.rename(columns={hdi_year: 'HDI'})
-        corr_fig = px.scatter(merge_df, x='HDI', y='coverage', hover_name='country', trendline='ols', labels={'coverage': 'Vaccine Coverage (%)'})
-        corr_fig.update_layout(height=400)
+        corr_fig = px.scatter(
+            merge_df, x='HDI', y='coverage', hover_name='country', trendline='ols',
+            labels={'coverage': 'Coverage (%)'}, height=300
+        )
         st.plotly_chart(corr_fig, use_container_width=True)
